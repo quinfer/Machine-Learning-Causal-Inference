@@ -1,0 +1,283 @@
+---
+title: "Causal inference and machine learning"
+author: "Barry Quinn"
+format: 
+  revealjs:
+    code-tools:
+      source: true
+execute:
+  echo: fenced
+editor: visual
+---
+
+## Introduction
+
+- This topic will be split into two
+- Introduction to supervised learning (another)
+- How prediction can be deployed into causal inferen
+
+## Outline lecture 1
+-  Prediction vs. Causality
+- Conceptual and practical (python!) intro to supervised machine learning methods
+- Lasso
+- Ridge
+- Elastic nets 
+-Random Forests
+
+# Outline lecture 2
+- How modern prediction methods can be deployed in the service of causal inference 
+- Post double selection lasso (PDS lasso) 
+- Double/de-biased machine learning (DML) 
+Machine Learning + Causal Inference II (starts May 15)
+- Predicting heterogeneous treatment effects  
+- Random Causal Forests Prediction vs. Causality 
+
+## Prediction vs. Causality
+- Imagine you are a life insurance underwriter. You receive an application for life insurance from someone with the following characteristics: 
+- male  
+- age 67 
+- High blood pressure 
+- high cholesterol 
+- family 
+- and . . . 
+- was admitted to the hospital yesterday 
+
+## Prediction vs. Causality 
+- Now imagine you are a loved one of someone with the following characteristics: 
+- and . . . 
+- is having chest pains. 
+- Should you take him to the hospital? 
+
+## Prediction vs. Causality: Purpose 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+### Prepare
+- A loan officer wants to know the likelihood of an individual repaying a loan based on income, employment, and other characteristics. 
+:::
+
+::: {.column width="50%"}
+### Influence
+- A mortgage lender wants to the likelihood of an know if direct debit will individual repaying a loan increase loan repayments based on income, employment, and other characteristics. 
+:::
+
+::::
+
+## Prediction vs. Causality: Purpose 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+### Prepare
+- In order to decide whether to invest in a start-up, an investor needs to know how likely the start-up is to succeed, given the entrepreneur’s experience and the characteristics of the industry.
+:::
+
+::: {.column width="50%"}
+### Influence
+- An entrepreneur needs to to invest in a start-up, an know what the effect of investor needs to know how receiving funding from a likely the start-up is to private equity investor succeed, given the (rather than getting a loan) entrepreneur’s experience is on the ultimate success of and the characteristics of an enterprise. the industry. 
+:::
+
+::::
+
+## Prediction vs. Causality: Purpose 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+### Prepare
+- A bail hearing judge needs to know how likely a defendant is to flee before trial, given his or her charges, criminal history, and other characteristics Prediction vs. Causality: Purpose Prepare Influence 
+:::
+
+::: {.column width="50%"}
+### Influence
+- A policy maker needs to to know how likely a know the effect of being defendant is to flee before released on bail (rather than trial, given his or her detained) prior to trial on charges, criminal history, ultimate conviction and other characteristics 
+:::
+
+::::
+
+##Prediction vs. Causality: Purpose
+:::: {.columns}
+
+::: {.column width="50%"}
+### Prepare
+- A home seller wants to know what price homes with the characteristics of his or her home typically sell for
+:::
+
+::: {.column width="50%"}
+### Influence
+-  A home seller wants to know what price homes with the by how much installing new characteristics of his or her windows will raise the value home typically sell for of his or her home 
+:::
+
+::::
+
+## Prediction vs. Causality: Purpose 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+### Prepare
+- A Harvard admissions officer wants to know how likely an applicant with given credentials is to graduate in 4 years 
+:::
+
+::: {.column width="50%"}
+### Influence
+A labor economist wants to wants to know how likely an know whether individuals of applicant with given a certain ethnic background credentials is to graduate in are less likely to get into 4 years Harvard than applicants with similar academic credentials
+:::
+
+::::
+
+## Prediction vs. Causality: Target 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- $y_i = \alpha + \beta x_i + ε_i$
+- $\beta$ is the slope
+- $\alpha + \beta x_i$ is the prediction
+:::
+
+::: {.column width="50%"}
+```{r}
+#| label: fakeols
+#| echo: false
+set.seed(1234)
+n=10
+tibble(x=rnorm(n),y=2*x+rnorm(n,sd = 0.5))->df
+df %>% ggplot(aes(x=x,y=y)) +
+  geom_point() +
+  geom_smooth(method = "lm",se = F)
+```
+:::
+
+::::
+
+## Prediction vs. Causality:  Methods
+
+### Causality
+
+- *:* Randomised Control Trails (RCT)  
+- *Aluminum standard:* Regression or IV strategies that approximate controlled experiments 
+
+## Prediction vs. Causality: Where shall they meet?
+
+We’ve seen that prediction and causality
+
+::: {.incremental}
+- answer different questions 
+- serve different purposes 
+- serve different purposes 
+- seek different targets 
+- use different methods
+:::
+
+- Different strokes for different folks, or complementary tools in an applied economist’s toolkit? 
+- Illustrate using the Oregon Health Insurance Experiment (go to labs) 
+
+## Where ML fits into causal inference 
+
+Traditional regression strategy:
+1. Regress $Y_i$ on $X_i$ and compute the residuals,
+
+$$\tilde{Y_i}=Y_i - \hat{Y}_i^{OLS}$$
+$$\hat{Y}_i^{OLS}=X'_i(X'X)^{-1}X'Y$$
+
+2. Regress $D_i$ on $X_i$ and compute the residuals, 
+
+$$\tilde{D_i}=D_i - \hat{D}_i^{OLS}$$
+
+$$\hat{D}_i^{OLS}=X'_i(X'X)^{-1}X'D$$
+
+3. Regress \tilde{Y_i} \tilde{D_i} 
+
+> When OLS might not be the right tool for the job: 
+
+- there are many variables in Xi 
+- the relationship between Xi and Yi or Di may not be linear 
+
+## Where ML fits into causal inference 
+
+**ML-augmented regression strategy:** 
+1. Predict $Y_i$ using $Xi$ with ML and compute the residuals, 
+$$\tilde{Y_i}=Y_i - \hat{Y}_i^{ML}$$
+$$\hat{Y}_i^{ML}=\text{ prediction generated by ML}$$
+
+2. Predict $D_i$ using $X_i$ with ML and compute the residuals, 
+$$\tilde{D_i}=D_i - \hat{D}_i^{ML}$$
+
+$$\hat{D}_i^{ML}=\text{ prediction generated by ML}$$
+
+3. Regress \tilde{Y_i} on \tilde{D_i}. 
+
+- Most common ML methods in applied economics: Lasso, Ridge, Elastic net, Random forest 
+
+## Getting serious about prediction 
+
+- Goal: Predict an out-of-sample outcome Y  
+- as a function, $\hat{f}(X)$, of features $X=(1,X_1,X_2,...,X_k)$
+- Estimate the function $\hat{f}$ (aka “train the model”) based on **training sample** $\{ (Y_i,X_i);i=1,...,N\}$
+
+
+## Cutting our losses 
+- Want our prediction to be “close,” i.e. minimize the expected loss function:  $\text{min E}[L(f(x)-Y)|X=x]$
+
+- Squared loss: $L(d)=d^2 \implies f^*(x)=E[Y|X=x]$ 
+
+- Absolute loss: $L(d)=|d| \implies f^*(x)=Med[Y|X=x]$
+
+- Asymmetric loss: 
+
+$$L_{\tau}=d(\tau-1(d<0)) \implies f^*(x)=Q_{1-\tau}[Y|X=x]$$
+
+## Navigating the Bias-Variance Tradeoff
+
+- Prediction problem solved if we knew $f^*(x)=E[Y|X=x]$
+- But we have to settle for an estimate: $\hat{f}$ ;
+
+$$E\left[(Y-\hat{f}(x))^2|X=x \right] \text{becomes:}$$
+- prediction bias squared (under the control of analyst)
+$$\left(E\left[\hat{f}(x)-f*(x)\right]^2 \right)$$
+- prediction variance (under the control of analyst)
+$$+ E\left[\left(\hat{f}(x)-E\left[\hat{f}(x)\right]\right)^2\right]$$
+- irreducible error
+$$E\left[\left(Y-f*(x)\right)^2|X=x\right]$$
+
+## Navigating the Bias-Variance Tradeoff
+
+### Experimental evidence
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+#| label: fig-low-bias-high-variance
+#| fig-cap: "Low bias, high variance"
+set.seed(1234)
+n=40
+tibble(x=rnorm(n),y=2*x+rnorm(n,sd = 1))->df
+df %>% ggplot(aes(x=x,y=y)) +
+  geom_point() +
+  geom_smooth(method = "loess",span=0.1,se=F)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| label: fig-high-bias-low-variance
+#| fig-cap: "High bias, low variance"
+df %>% ggplot(aes(x=x,y=y)) +
+  geom_point() +
+  geom_smooth(method = "loess",span=0.8,se=F)
+```
+:::
+
+::::
+
+## Python example: predicting earnings in the NLSY 
+
+## Penalized Regression: Lasso 
+
+-  When is it the right tool for the job: 
+- When you have a large number of potential regressors (including powers or other transformations), maybe even more than the sample size!
+- Out of these, only a relatively few (but you don’t know which) really matter (what do we mean by “matter?”). We call this approximate sparsity 
+- Theoretical definition: n k X \0012 X arg min yi − xi′ b +λ |bj | b i=1 j=1 What does λ do and how do we choose it? ▶ Caveats and considerations: ▶ Important to standardize regressors pre-lasso ▶ Can give unexpected results with dummy variables ▶ Resist the temptation to interpret coefficients or the included variables as the “true model!” ▶ Let’s give it a go in python! Choosing Tuning Parameters: Cross-Validation All supervised ML methods have tuning parameters: ▶ Lasso: λ ▶ Ridge: α ▶ Random forests: tree depth, etc. Tuning parameters are the rudder by which we navigate the bias-variance tradeoff. .42 out-of-sample MSE .4 in-sample MSE .38 MSE .36 .34 overfitting underfitting .32 0 .02 λ* .04 .06 Choosing Tuning Parameters: Cross-Validation Y X1 X2 X3 Fold 1 Fold 2 Fold 3 Cross-validation procedure: Divide sample in K folds ▶ Choose some value of the tuning parameter, λ ▶ For each fold k = 1, . . . , K 1. Train model leaving out fold k 2. Generate predictions in fold k \020 \0212 3. Compute MSE for fold k: MSEk = n1k P i∈k Yi − Ŷi ▶ Compute overall MSE correponding to the current choice of λ: MSE (λ) = K1 K P k=1 MSEk Repeat the above for many values of λ, and choose the value λ∗ with the lowest cross-validated MSE—time for python! Penalized Regression: Ridge ▶ When is it the right tool for the job: ▶ When you have a large number of regressors including highly collinear ones ▶ Theoretical definition: n k 2 X X yi − xi′ b + α bj2 \001 arg min b i=1 j=1 ′ \001−1 ′ = X X + αI XY ▶ Caveats and considerations: ▶ Important to standardize regressors pre-ridge ▶ Shrinks (biases) coefficients towards zero, but not all the way (unlike lasso) ▶ Let’s give it a go in python! Penalized Regression: Elastic Net ▶ Combines lasso and ridge approaches ▶ Theoretical definition: n k k 2 X X X yi − xi′ b + αγ bj2 \001 arg min |bj | + .5α (1 − γ) b i=1 j=1 j=1 ▶ Caveats and considerations: ▶ Two tuning parameters: α and γ ▶ Important to standardize regressors pre-ridge ▶ Zeros out many regressors, shrinks (biases) remaining coefficients towards zero ▶ Let’s give it a go in python! Decision Trees Medicaid eligible Medicaid ineligible Initial node Income Number of children Decision Trees Medicaid eligible Medicaid ineligible Income<20k? No Yes Income Number of children Decision Trees Medicaid eligible Medicaid ineligible Income<20k? No Yes # kids < 5? # kids < 3? Income No Yes No Yes Number of children Decision Trees Medicaid eligible Medicaid ineligible Income<20k? No Yes # kids < 5? # kids < 3? Income No Yes No Yes Number of children Decision Trees Income<20k? No Yes # kids < 5? # kids < 3? No Yes No Yes ▶ Where to split: Choose the feature from {x1 , . . . , xp } and the value of that feature to minimize MSE in the resulting child nodes ▶ Tuning parameters ▶ Max depth ▶ Min training obs per leaf ▶ Min improvement in fit in order to go ahead with a split ▶ Let’s try it in python! Wisdom of the crowd: predict my father’s age! Forest for the Trees ▶ Value proposition: reduce variance by averaging together multiple predictions ▶ The catch: individual trees need to be de-correlated ▶ Algorithm: ▶ Grow B trees, each on a different bootstrapped sample ▶ At each split, consider only a random subset of features ▶ Average together the individual predictions ▶ Let’s grow some trees in python!"

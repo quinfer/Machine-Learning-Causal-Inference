@@ -1,5 +1,9 @@
 ---
+title: Causal inference and prediction
+subtitle: FIN730
+author: Barry Quinn
 output: github_document
+execute: 
 ---
 
 # Prediction

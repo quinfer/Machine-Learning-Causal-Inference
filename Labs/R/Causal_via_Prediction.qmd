@@ -1,40 +1,47 @@
 ---
+title: Causal inference and prediction
+subtitle: FIN730
+author: Barry Quinn
 output: github_document
+execute: 
+  echo: true
 ---
 
-# Where ML Fits into Causal Inference (review)
+## Where ML Fits into Causal Inference (review)
 
-The traditional go-to tool for causal inference is multiple regression:
+- The traditional go-to tool for causal inference is multiple regression:
 $$
 Y_i = \delta D_i + X_i'\beta+\varepsilon_i,
 $$
-where $D_i$ is the "treatment" or causal variable whose effects we are interested in, and $X_i$ is a vector of controls, conditional on which we are willing to assume $D_i$ is as good as randomly assigned.
-
+- where $D_i$ is the "treatment" or causal variable whose effects we are interested in, and $X_i$ is a vector of controls, conditional on which we are willing to assume $D_i$ is as good as randomly assigned.
 
 > *example:* Suppose we are interested in the magnitude of racial discrimination in the labor market. One way to conceptualize this is the difference in earnings between two workers who are identical in productivity, but differ in their race, or, the "effect" of race. Then $D_i$ would be an indicator for, say, a Black worker. $Y_i$ would be earnings, and $X_i$ would be characteristics that capture determinants of productivity, including educational attainment, cognitive ability, and other background characteristics.
 
-Where does machine learning fit into causal inference? It might be tempting to treat
-this regression as a prediction exercise where we are predicting $Y_{i}$
-given $D_{i}$ and $X_{i}$. Don't give in to this temptation. We are not
-after a prediction for $Y_{i}$, we are after a coefficient on $D_{i}$.
-Modern machine learning algorithms are finely tuned for producing
-predictions, but along the way they compromise coefficients. So how can we
-deploy machine learning in the service of estimating the causal coefficient $\delta $?
+## Where does machine learning fit into causal inference? 
 
-To see where ML fits in, first remember that an equivalent way to estimate $%
-\delta $ is the following three-step procedure:
+- It might be tempting to treat this regression as a prediction exercise where we are predicting $Y_{i}$ given $D_{i}$ and $X_{i}$. 
+- Don't give in to this temptation. We are not after a prediction for $Y_{i}$, we are after a coefficient on $D_{i}$.
+- Modern machine learning algorithms are finely tuned for producing predictions, but along the way they compromise coefficients. 
+- So how can we deploy machine learning in the service of estimating the causal coefficient $\delta $?
 
+## Where does machine learning fit into causal inference? 
+
+- To see where ML fits in, first remember that an equivalent way to estimate $\delta$ is the following three-step procedure:
 
 1.   Regress $Y_{i}$ on $X_{i}$ and compute the residuals, $\tilde{Y}%
 _{i}=Y_{i}-\hat{Y}_{i}^{OLS}$, where $\hat{Y}_{i}^{OLS}=X_{i}^{\prime
 }\left( X^{\prime }X\right) ^{-1}X^{\prime }Y$
+
 2.   Regress $D_{i}$ on $X_{i}$ and compute the residuals, $\tilde{D}%
 _{i}=D_{i}-\hat{D}_{i}^{OLS}$, where $\hat{D}_{i}^{OLS}=X_{i}^{\prime
 }\left( X^{\prime }X\right) ^{-1}X^{\prime }D$
 
 3. Regress $\tilde{Y}_{i}$ on $\tilde{D}_{i}$.
 
-Steps 1 and 2 are prediction exercises--ML's wheelhouse. When OLS isn't the right tool for the job, we can replace OLS in those steps with machine learning:
+## Where does machine learning fit into causal inference? 
+
+- Steps 1 and 2 are prediction exercises--ML's wheelhouse. 
+- When OLS isn't the right tool for the job, we can replace OLS in those steps with machine learning:
 
 1.   Predict $Y_{i}$ based on $X_{i}$ using ML and compute the residuals, $\tilde{Y}%
 _{i}=Y_{i}-\hat{Y}_{i}^{ML}$, where $\hat{Y}_{i}^{ML}$ is the prediction from an ML algorithm
@@ -43,9 +50,9 @@ _{i}=D_{i}-\hat{D}_{i}^{ML}$, where $\hat{D}_{i}^{ML}$ is the prediction from an
 
 3. Regress $\tilde{Y}_{i}$ on $\tilde{D}_{i}$.
 
-This is the basis for the two major methods we'll look at today: The first is "Post-Double Selection Lasso" (Belloni, Chernozhukov, Hansen). The second is "Double-Debiased Machine Learning" (Chernozhukov, Chetverikov, Demirer, Duflo, Hansen, Newey, Robins)
+>This is the basis for the two major methods we'll look at today: The first is "Post-Double Selection Lasso" (Belloni, Chernozhukov, Hansen). The second is "Double-Debiased Machine Learning" (Chernozhukov, Chetverikov, Demirer, Duflo, Hansen, Newey, Robins)
 
-# Post Double Selection Lasso (PDS Lasso)
+## Post Double Selection Lasso (PDS Lasso)
 
 Try it yourself first
 
@@ -67,7 +74,7 @@ head(nlsy)
 - y: `lnw_2016`
 - d: `black`
 
-## Simple Regression with no Controls
+### Simple Regression with no Controls
 
 Regress y on d and print out coefficient
 
@@ -78,9 +85,7 @@ feols(
 )
 ```
 
-### ...
-
-Is this the effect we're looking for? 
+## Is this the effect we're looking for? 
 
 Let's try a regression where we control for a few things: education (linearly), experience (linearly), and cognitive ability (afqt, linearly).
 
@@ -93,10 +98,10 @@ feols(
 
 
 
-### ...
-How does it compare to the simple regression? 
+## How does it compare to the simple regression? 
 
-But who is to say the controls we included are sufficient? We have a whole host (hundred!) of other potential controls, not to mention that perhaps the controls we did put in enter linearly. This is a job for ML!
+- But who is to say the controls we included are sufficient? 
+- We have a whole host (hundred!) of other potential controls, not to mention that perhaps the controls we did put in enter linearly. This is a job for ML!
 
 To prep, let's define a matrix X with all of our potential controls:
 
@@ -108,7 +113,7 @@ potential_controls = setdiff(colnames(nlsy), c("lnw_2016", "black"))
 
 ### Step 1: Lasso the outcome on X
 
-Don't forget to standard Xs, or choose the normalize=True option
+- **Don't forget to standard Xs, or choose the normalize=True option**
 
 ```{r}
 X = as.matrix(nlsy[, potential_controls])
@@ -126,7 +131,7 @@ keep_y = setdiff(keep_y, "(Intercept)")
 
 ```
 
-### Step 2: Lasso the treatment on d
+## Step 2: Lasso the treatment on d
 
 
 ```{r}
@@ -143,14 +148,14 @@ keep_d = rownames(lasso_d_coefs)[lasso_d_coefs != 0]
 keep_d = setdiff(keep_d, "(Intercept)")
 ```
 
-### Step 3: Form the union of controls
+## Step 3: Form the union of controls
 
 ```{r}
 keep = union(keep_y, keep_d)
 ```
 
 
-### Concatenate treatment with union of controls and regress y on that and print out estimate
+## Concatenate treatment with union of controls and regress y on that and print out estimate
 
 ```{r}
 # Need `` surrounding variables since some variables start with underscore
@@ -177,7 +182,7 @@ y_hat = predict(ridge_y, ridge_y$lambda.1se, newx = X)
 nlsy$y_resid = nlsy$lnw_2016 - as.numeric(y_hat)
 ```
 
-### Step 2: Ridge treatment on Xs, get residuals
+## Step 2: Ridge treatment on Xs, get residuals
 
 ```{r}
 # Run cross-validation for y
@@ -187,15 +192,14 @@ d_hat = predict(ridge_d, ridge_d$lambda.1se, newx = X)
 nlsy$d_resid = nlsy$black - as.numeric(d_hat)
 ```
 
-### Step 3: Regress y resids on d resids and print out estimate
+## Step 3: Regress y resids on d resids and print out estimate
 
 ```{r}
 feols(y_resid ~ d_resid, nlsy)
 ```
 
 
-
-### The real thing: with sample splitting
+## The real thing: with sample splitting
 
 ```{r}
 set.seed(5)
