@@ -1,9 +1,9 @@
 ---
 title: Causal inference and prediction
-subtitle: FIN730
 author: Barry Quinn
-output: github_document
-execute: 
+output: html
+execute:
+  echo: fenced
 ---
 
 # Prediction
@@ -23,7 +23,7 @@ library(glmnet)
 library(patchwork)
 library(caTools)
 library(glue)
-
+library(randomForest)
 nlsy = read_csv('https://github.com/Mixtape-Sessions/Machine-Learning/blob/main/Labs/data/nlsy97.csv?raw=true')
 nlsy = nlsy |>
   drop_na(educ)
@@ -87,7 +87,6 @@ ggplot(summ) +
 ```
 
 As we can see, least squares linear regression can approximate any continuous function and can certainly be used for prediction. Include a rich enough set of transformations, and OLS predictions will yield unbiased estimates of the true ideal predictor, the conditional expectation function. But these estimates will be quite noisy. Penalized regression can greatly reduce the variance, at the expense of some bias. But if the bias reduction is great enough, the predictions can have lower MSE. Back to the whiteboard!
-
 
 ## Lasso in action
 
@@ -220,7 +219,6 @@ f2 <- ggplot(summ) +
 
 Play around with different values for alpha to see how the fit changes!
 
-
 ### Data-driven tuning parameters: Cross-validation
 
 Quick trip back to the whiteboard!
@@ -282,15 +280,12 @@ coefs_lasso = data.frame(
 subset(coefs_lasso, coef_lasso > 0)
 ```
 
-
 To try on your own: load the Oregon HIE data from earlier and try lassoing the OLS regression we did there. What do you notice?
 
-
 ```{r}
-# Load Oregon HIE Data
-
+#| label: "Load Oregon HIE Data"
+df<-read_csv("../data/oregon_hie_table5.csv")
 ```
-
 
 ## Ridge regression
 
@@ -391,11 +386,10 @@ subset(coefs_elastic, coef_elastic > 0)
 
 Not surprisingly, it doesn't look terribly different from lasso.
 
-
 ## Decision Trees and Random Forests
 
-
 Let's use random forests to predict wages in the NLSY, just as we did for Lasso, Ridge, and Elastic net. Try it on your own!
+
 ```{r}
 forest = randomForest(x = X_train_scaled, y = y_train)
 plot(forest)
@@ -413,5 +407,3 @@ cat(glue("Accuracy on test set: {format(rsq_test, digits = 3)}\n"))
 ```
 
 How does Random Forest compare with Lasso?
-
-
